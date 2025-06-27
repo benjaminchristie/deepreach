@@ -25,7 +25,6 @@ p.add_argument(
     "--mode",
     type=str,
     required=True,
-    choices=["all", "train", "test"],
     help="Experiment mode to run (new experiments must choose 'all' or 'train').",
 )
 
@@ -55,7 +54,7 @@ if use_wandb:
 
 mode = p.parse_known_args()[0].mode
 
-if (mode == "all") or (mode == "train"):
+if (mode == "all") or (mode == "train") or (mode == "dummy"):
     p.add_argument(
         "--seed", type=int, default=0, required=False, help="Seed for the experiment."
     )
@@ -517,6 +516,35 @@ experiment.init_special(
         if argname != "self"
     }
 )
+
+model = experiment.model
+import matplotlib.pyplot as plt
+
+fig = plt.figure()
+ax = fig.add_subplot(projection="3d")
+
+if mode == "dummy":
+    model_path = "runs/zero_sum_1/training/checkpoints/model_epoch_100000.pth"
+    model.load_state_dict(torch.load(model_path)["model"])
+    outputs = experiment.some_plot()
+    print(outputs)
+    for i in range(len(outputs)):
+        xs = outputs[i]["model_in"]
+        Vs = outputs[i]["model_out"]
+        for j in range(0, len(xs[0]), 100):
+            # for j in range(1000, len(xs[0])):
+            x = xs[0][j].cpu().detach().numpy()
+            v = Vs[0][j].cpu().item()
+            # if v >= -1e-9:
+            #     plt.plot(x[1], x[2], "r.")
+            #     plt.plot(x[6], x[7], "b.")
+            ax.scatter(x[1], x[2], v, "r.")
+            ax.scatter(x[6], x[7], v, "b.")
+            # n = torch.linalg.norm(x[1:3] - x[6:8]).item()
+            # plt.plot(n, v.item(), "r.")
+            print(j)
+    plt.show()
+
 
 if (mode == "all") or (mode == "train"):
     if dynamics.loss_type == "brt_hjivi":
